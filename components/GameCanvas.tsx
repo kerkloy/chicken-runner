@@ -13,8 +13,8 @@ const GameCanvas: React.FC = () => {
   const chicken = {
     x: 50,
     y: 150,
-    width: 58,
-    height: 58,
+    width: 68,
+    height: 68,
     velocityY: 0,
     gravity: 1.2,
     jumpPower: -25,
