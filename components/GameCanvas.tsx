@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useRef, useEffect } from 'react';
 
 const GameCanvas: React.FC = () => {
@@ -7,6 +8,7 @@ const GameCanvas: React.FC = () => {
   const scoreRef = useRef(0);
   const frameCountRef = useRef(0);
   const chickenImageRef = useRef<HTMLImageElement | null>(null);
+  const cornImageRef = useRef<HTMLImageElement | null>(null);
 
   const chicken = {
     x: 50,
@@ -15,7 +17,7 @@ const GameCanvas: React.FC = () => {
     height: 48,
     velocityY: 0,
     gravity: 1.2,
-    jumpPower: -22, 
+    jumpPower: -20,
     isJumping: false,
   };
 
@@ -49,17 +51,14 @@ const GameCanvas: React.FC = () => {
   const draw = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Background
     ctx.fillStyle = '#fef9c3';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Ground
     ctx.fillStyle = '#22c55e';
     const groundHeight = 10;
     const groundY = canvas.height - groundHeight;
     ctx.fillRect(0, groundY, canvas.width, groundHeight);
 
-    // Chicken physics
     chicken.velocityY += chicken.gravity;
     chicken.y += chicken.velocityY;
 
@@ -70,7 +69,6 @@ const GameCanvas: React.FC = () => {
       chicken.isJumping = false;
     }
 
-    // Draw chicken sprite or fallback
     const chickenImg = chickenImageRef.current;
     if (chickenImg && chickenImg.complete) {
       ctx.drawImage(chickenImg, chicken.x, chicken.y, chicken.width, chicken.height);
@@ -79,30 +77,39 @@ const GameCanvas: React.FC = () => {
       ctx.fillRect(chicken.x, chicken.y, chicken.width, chicken.height);
     }
 
-    // Add obstacles with random height
     if (frame % 100 === 0) {
-      const minHeight = 30;
+      const minHeight = 50;
       const maxHeight = 80;
       const randomHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
 
       obstacles.push({
         x: canvas.width,
-        width: 48,
+        width: 80,
         height: randomHeight,
       });
     }
 
-    // Move and draw obstacles
     obstacles = obstacles.filter((obs) => obs.x + obs.width > 0);
     for (const obs of obstacles) {
       obs.x -= speed;
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(obs.x, groundY - obs.height, obs.width, obs.height);
 
-      ctx.beginPath();
-      ctx.fillStyle = '#4ade80';
-      ctx.arc(obs.x + obs.width / 2, groundY - obs.height, obs.width / 2, 0, Math.PI * 2);
-      ctx.fill();
+      const cornImg = cornImageRef.current;
+      if (cornImg && cornImg.complete) {
+        ctx.drawImage(cornImg, obs.x, groundY - obs.height, obs.width, obs.height);
+      } else {
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.ellipse(
+          obs.x + obs.width / 2,
+          groundY - obs.height / 2,
+          obs.width / 2,
+          obs.height / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
 
       if (
         chicken.x < obs.x + obs.width &&
@@ -113,16 +120,13 @@ const GameCanvas: React.FC = () => {
       }
     }
 
-    // Score - upper center and larger size
     scoreRef.current++;
     ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 34px sans, sans-serif';
-    ctx.textAlign = 'center';
+    ctx.font = 'bold 48px Arial';
     const scoreText = `Score: ${scoreRef.current}`;
     const textWidth = ctx.measureText(scoreText).width;
     ctx.fillText(scoreText, (canvas.width - textWidth) / 2, 60);
 
-    // Speed adjustment based on score (max speed at score 1000)
     const maxSpeed = 12;
     const minSpeed = 6;
     const scoreCap = 1000;
@@ -130,10 +134,10 @@ const GameCanvas: React.FC = () => {
     speed = minSpeed + (maxSpeed - minSpeed) * scoreProgress;
 
     if (gameOver) {
-        ctx.fillStyle = '#dc2626';
-        ctx.font = '34px sans, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Game Over - Click or Space to restart', canvas.width / 2, canvas.height / 2);
+      ctx.fillStyle = '#dc2626';
+      ctx.font = '34px Monoton, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game Over - Click or Space to restart', canvas.width / 2, canvas.height / 2);
     } else {
       frame++;
       frameCountRef.current++;
@@ -156,12 +160,17 @@ const GameCanvas: React.FC = () => {
       canvas.height = window.innerHeight;
     }
 
-    // Load chicken image
-    const img = new Image();
-    img.src = '/sprites/chicken.png';
-    img.onload = () => {
-      chickenImageRef.current = img;
-      startGame();
+    const chickenImg = new Image();
+    chickenImg.src = '/sprites/chicken.png';
+    chickenImg.onload = () => {
+      chickenImageRef.current = chickenImg;
+
+      const cornImg = new Image();
+      cornImg.src = '/sprites/corn.png';
+      cornImg.onload = () => {
+        cornImageRef.current = cornImg;
+        startGame();
+      };
     };
 
     const handleKey = (e: KeyboardEvent) => {
