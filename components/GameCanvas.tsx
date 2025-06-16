@@ -17,7 +17,7 @@ const GameCanvas: React.FC = () => {
     height: 58,
     velocityY: 0,
     gravity: 1.2,
-    jumpPower: -20,
+    jumpPower: -25,
     isJumping: false,
   };
 
