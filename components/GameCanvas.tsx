@@ -13,8 +13,8 @@ const GameCanvas: React.FC = () => {
   const chicken = {
     x: 50,
     y: 150,
-    width: 48,
-    height: 48,
+    width: 58,
+    height: 58,
     velocityY: 0,
     gravity: 1.2,
     jumpPower: -20,
@@ -84,7 +84,7 @@ const GameCanvas: React.FC = () => {
 
       obstacles.push({
         x: canvas.width,
-        width: 80,
+        width: 90,
         height: randomHeight,
       });
     }
@@ -122,7 +122,8 @@ const GameCanvas: React.FC = () => {
 
     scoreRef.current++;
     ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 48px Arial';
+    ctx.font = '24px Monoton, monospace';
+      ctx.textAlign = 'center';
     const scoreText = `Score: ${scoreRef.current}`;
     const textWidth = ctx.measureText(scoreText).width;
     ctx.fillText(scoreText, (canvas.width - textWidth) / 2, 60);
