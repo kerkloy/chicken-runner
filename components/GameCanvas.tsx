@@ -9,6 +9,9 @@ const GameCanvas: React.FC = () => {
   const frameCountRef = useRef(0);
   const chickenImageRef = useRef<HTMLImageElement | null>(null);
   const cornImageRef = useRef<HTMLImageElement | null>(null);
+  const mountainImageRef = useRef<HTMLImageElement | null>(null);
+  const cloudImageRef = useRef<HTMLImageElement | null>(null);
+  const galaxyImageRef = useRef<HTMLImageElement | null>(null);
 
   const chicken = {
     x: 50,
@@ -22,7 +25,9 @@ const GameCanvas: React.FC = () => {
   };
 
   let obstacles: { x: number; width: number; height: number }[] = [];
-  let speed = 6;
+  let clouds: { x: number; y: number; width: number; height: number; speed: number }[] = [];
+  let mountainX = 0;
+  let speed = 4;
   let frame = 0;
   let gameOver = false;
 
@@ -33,9 +38,11 @@ const GameCanvas: React.FC = () => {
     gameOver = false;
     scoreRef.current = 0;
     obstacles = [];
+    clouds = [];
     frame = 0;
     frameCountRef.current = 0;
-    speed = 6;
+    speed = 4;
+    mountainX = 0;
     startGame();
   };
 
@@ -48,11 +55,66 @@ const GameCanvas: React.FC = () => {
     }
   };
 
-  const draw = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const drawParallaxMountains = (
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => {
+    const parallaxSpeed = speed * 0.2;
+    const drawHeight = canvasHeight / 3;
+    const drawWidth = (image.width / image.height) * drawHeight;
+    mountainX = (mountainX - parallaxSpeed) % drawWidth;
+    if (mountainX > 0) mountainX -= drawWidth;
+    for (let x = mountainX; x < canvasWidth; x += drawWidth) {
+      ctx.drawImage(image, x, canvasHeight - drawHeight - 10, drawWidth, drawHeight);
+    }
+  };
 
-    ctx.fillStyle = '#fef9c3';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const drawClouds = (
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => {
+    clouds.forEach((cloud) => {
+      cloud.x -= cloud.speed;
+      ctx.drawImage(image, cloud.x, cloud.y, cloud.width, cloud.height);
+    });
+
+    clouds = clouds.filter((cloud) => cloud.x + cloud.width > 0);
+
+    if (frame % 80 === 0) {
+      const height = Math.random() * 50 + 30;
+      const width = height * 2;
+      clouds.push({
+        x: canvasWidth,
+        y: Math.random() * canvasHeight * 0.4,
+        width,
+        height,
+        speed: Math.random() * 1 + 0.5,
+      });
+    }
+  };
+
+  const draw = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    const galaxyImg = galaxyImageRef.current;
+    if (galaxyImg && galaxyImg.complete) {
+      ctx.drawImage(galaxyImg, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const mountainImg = mountainImageRef.current;
+    if (mountainImg && mountainImg.complete) {
+      drawParallaxMountains(ctx, mountainImg, canvas.width, canvas.height);
+    }
+
+    const cloudImg = cloudImageRef.current;
+    if (cloudImg && cloudImg.complete) {
+      drawClouds(ctx, cloudImg, canvas.width, canvas.height);
+    }
 
     ctx.fillStyle = '#22c55e';
     const groundHeight = 10;
@@ -61,7 +123,6 @@ const GameCanvas: React.FC = () => {
 
     chicken.velocityY += chicken.gravity;
     chicken.y += chicken.velocityY;
-
     const maxY = groundY - chicken.height;
     if (chicken.y >= maxY) {
       chicken.y = maxY;
@@ -81,18 +142,12 @@ const GameCanvas: React.FC = () => {
       const minHeight = 50;
       const maxHeight = 80;
       const randomHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-
-      obstacles.push({
-        x: canvas.width,
-        width: 90,
-        height: randomHeight,
-      });
+      obstacles.push({ x: canvas.width, width: 90, height: randomHeight });
     }
 
     obstacles = obstacles.filter((obs) => obs.x + obs.width > 0);
     for (const obs of obstacles) {
       obs.x -= speed;
-
       const cornImg = cornImageRef.current;
       if (cornImg && cornImg.complete) {
         ctx.drawImage(cornImg, obs.x, groundY - obs.height, obs.width, obs.height);
@@ -121,21 +176,20 @@ const GameCanvas: React.FC = () => {
     }
 
     scoreRef.current++;
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = '#ffffff';
     ctx.font = '24px Monoton, monospace';
-      ctx.textAlign = 'center';
+    ctx.textAlign = 'center';
     const scoreText = `Score: ${scoreRef.current}`;
-    const textWidth = ctx.measureText(scoreText).width;
-    ctx.fillText(scoreText, (canvas.width - textWidth) / 2, 60);
+    ctx.fillText(scoreText, canvas.width / 2, 60);
 
-    const maxSpeed = 12;
-    const minSpeed = 6;
+    const maxSpeed = 8;
+    const minSpeed = 4;
     const scoreCap = 1000;
     const scoreProgress = Math.min(scoreRef.current, scoreCap) / scoreCap;
     speed = minSpeed + (maxSpeed - minSpeed) * scoreProgress;
 
     if (gameOver) {
-      ctx.fillStyle = '#dc2626';
+      ctx.fillStyle = '#FFFFFF';
       ctx.font = '34px Monoton, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Game Over - Click or Space to restart', canvas.width / 2, canvas.height / 2);
@@ -161,16 +215,34 @@ const GameCanvas: React.FC = () => {
       canvas.height = window.innerHeight;
     }
 
-    const chickenImg = new Image();
-    chickenImg.src = '/sprites/chicken.png';
-    chickenImg.onload = () => {
-      chickenImageRef.current = chickenImg;
+    const galaxyImg = new Image();
+    galaxyImg.src = '/sprites/galaxy.jpg';
+    galaxyImg.onload = () => {
+      galaxyImageRef.current = galaxyImg;
 
-      const cornImg = new Image();
-      cornImg.src = '/sprites/corn.png';
-      cornImg.onload = () => {
-        cornImageRef.current = cornImg;
-        startGame();
+      const mountainImg = new Image();
+      mountainImg.src = '/sprites/mountains.png';
+      mountainImg.onload = () => {
+        mountainImageRef.current = mountainImg;
+
+        const cloudImg = new Image();
+        cloudImg.src = '/sprites/cloud.png';
+        cloudImg.onload = () => {
+          cloudImageRef.current = cloudImg;
+
+          const chickenImg = new Image();
+          chickenImg.src = '/sprites/chicken.png';
+          chickenImg.onload = () => {
+            chickenImageRef.current = chickenImg;
+
+            const cornImg = new Image();
+            cornImg.src = '/sprites/corn.png';
+            cornImg.onload = () => {
+              cornImageRef.current = cornImg;
+              startGame();
+            };
+          };
+        };
       };
     };
 
